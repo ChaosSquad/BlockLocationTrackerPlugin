@@ -79,6 +79,7 @@ public class BlockEventListener implements Listener {
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.AMBIENT, 1.0F, 1.0F);
                 }
             }
+            event.setCancelled(true);
         }
         // Debug
         // System.out.println("Bl nach:" + blockList.toJSONString());
