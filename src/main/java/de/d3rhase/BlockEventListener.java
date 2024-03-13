@@ -1,11 +1,9 @@
 package de.d3rhase;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,100 +11,155 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.BlockIterator;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class BlockEventListener implements Listener {
 
     private JavaPlugin plugin;
     private JSONArray blockList;
     private File blockListFile;
+    private final List<BlockDisplay> highlightedBlocks;
+    private final static String fileName = "interactionAllowed.json";
+
 
     public BlockEventListener(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.blockListFile = new File(plugin.getDataFolder(), "blockList.json");
+        this.blockListFile = new File(plugin.getDataFolder(), fileName);
+        highlightedBlocks= new ArrayList<>();
         loadBlockList();
-    }
-
-    private void loadBlockList() {
-        if (!blockListFile.exists()) {
-            blockList = new JSONArray();
-            return;
-        }
-        try (FileReader reader = new FileReader(blockListFile)) {
-            blockList = (JSONArray) new org.json.simple.parser.JSONParser().parse(reader);
-        } catch (Exception e) {
-            e.printStackTrace();
-            blockList = new JSONArray();
-        }
-    }
-
-    void saveBlockList() {
-        try (FileWriter file = new FileWriter(blockListFile)) {
-            file.write(blockList.toJSONString());
-            file.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     @EventHandler
     public void onPlayerUse(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
+        // Debug
+        //System.out.println("Bl vor:" + blockList.toJSONString());
 
-        if (item != null && item.getType() == Material.CARROT_ON_A_STICK && event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
-            System.out.println(blockList.toJSONString());
+        if (item.getType() == Material.CARROT_ON_A_STICK && event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
             Block targetBlock = player.getTargetBlockExact(5); // Get the exact block up to 5 blocks away
-            if (targetBlock != null) {
+
+            if (targetBlock != null && !targetBlock.getType().isAir()) {
+
                 JSONObject blockCoords = new JSONObject();
                 blockCoords.put("x", targetBlock.getX());
                 blockCoords.put("y", targetBlock.getY());
                 blockCoords.put("z", targetBlock.getZ());
 
-                // Check if the block is already in the list
-                if (blockList.contains(blockCoords)) {
-                    // If it is, remove it
-                    blockList.remove(blockCoords);
-                    saveBlockList();
-                    player.sendMessage("Block removed from the list.");
-                } else {
-                    // If it's not, add it to the list
+                if (!this.blockIsOnList(blockCoords)) {
+
                     blockList.add(blockCoords);
-                    saveBlockList();
-                    player.sendMessage("Block added to the list.");
+                    spawnHighlightedBlock(targetBlock.getLocation());
+
+                    String message = (ChatColor.GREEN + "Block added to the list");
+                    player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.AMBIENT, 1.0F, 1.0F);
+
+                } else {
+                    blockList.removeIf(obj -> {
+                        JSONObject objCoords = (JSONObject) obj;
+                        boolean xMatches = objCoords.get("x").toString().equals(blockCoords.get("x").toString());
+                        boolean yMatches = objCoords.get("y").toString().equals(blockCoords.get("y").toString());
+                        boolean zMatches = objCoords.get("z").toString().equals(blockCoords.get("z").toString());
+                        return xMatches && yMatches && zMatches;
+                    });
+                    removeHighlightedBlock(targetBlock.getLocation());
+
+                    String message = (ChatColor.RED + "Block removed from the list");
+                    player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, SoundCategory.AMBIENT, 1.0F, 1.0F);
                 }
             }
         }
-        System.out.println(blockList.toJSONString());
+        // Debug
+        // System.out.println("Bl nach:" + blockList.toJSONString());
     }
 
-    public void highlightBlocks() {
-        for (Object obj : blockList) {
+    private boolean blockIsOnList(JSONObject targetBlock){
+        boolean xMatches, yMatches, zMatches;
+
+        for (Object o : blockList) {
+            JSONObject listBlock = (JSONObject) o;
+            xMatches = listBlock.get("x").toString().equals(targetBlock.get("x").toString());
+            yMatches = listBlock.get("y").toString().equals(targetBlock.get("y").toString());
+            zMatches = listBlock.get("z").toString().equals(targetBlock.get("z").toString());
+            if (xMatches && yMatches && zMatches){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void spawnHighlightedBlock(Location location) {
+        BlockDisplay blockDisplay = Objects.requireNonNull(location.getWorld()).spawn(location.clone(), BlockDisplay.class);
+        blockDisplay.setBlock(Material.GLASS.createBlockData());
+        blockDisplay.setGlowing(true);
+        highlightedBlocks.add(blockDisplay);
+    }
+
+    private void removeHighlightedBlock(Location location) {
+        highlightedBlocks.removeIf(blockDisplay -> {
+            if (blockDisplay.getLocation().getBlockX() == location.getBlockX() &&
+                    blockDisplay.getLocation().getBlockY() == location.getBlockY() &&
+                    blockDisplay.getLocation().getBlockZ() == location.getBlockZ()) {
+                blockDisplay.remove();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    public void spawnHighlightedBlocks() {
+        blockList.forEach(obj -> {
             JSONObject blockCoords = (JSONObject) obj;
-            World world = Bukkit.getWorld("world"); // Replace "worldName" with your actual world name
-            double x = ((Long) blockCoords.get("x")).doubleValue();
-            double y = ((Long) blockCoords.get("y")).doubleValue();
-            double z = ((Long) blockCoords.get("z")).doubleValue();
+            World world = plugin.getServer().getWorld("world");
+            Location location = new Location(world,
+                    Double.parseDouble(blockCoords.get("x").toString()),
+                    Double.parseDouble(blockCoords.get("y").toString()),
+                    Double.parseDouble(blockCoords.get("z").toString()));
 
-            Location location = new Location(world, x + 0.5, y + 0.5, z + 0.5); // Center the falling block
-            FallingBlock fallingBlock = world.spawnFallingBlock(location, Material.AIR.createBlockData()); // Use BARRIER for invisible blocks
+            spawnHighlightedBlock(location);
+        });
+    }
 
-            fallingBlock.setDropItem(false); // Prevent the block from dropping items
-            fallingBlock.setGravity(false); // Prevent the block from falling
-            fallingBlock.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1, false, false)); // Apply glowing effect
-            fallingBlock.setSilent(true); // Make the falling block silent
-            fallingBlock.setInvulnerable(true); // Make the falling block invulnerable
+    public void removeHighlightedBlocks() {
+        highlightedBlocks.forEach(BlockDisplay::remove);
+        highlightedBlocks.clear();
+    }
+
+    public void loadBlockList() {
+        try {
+            if (!blockListFile.exists()) {
+                blockList = new JSONArray();
+                return;
+            }
+            FileReader reader = new FileReader(blockListFile);
+            blockList = (JSONArray) new JSONParser().parse(reader);
+        } catch (Exception e) {
+            e.printStackTrace();
+            blockList = new JSONArray();
         }
     }
 
-
+    public void saveBlockList() {
+        try {
+            FileWriter file = new FileWriter(blockListFile);
+            file.write(blockList.toJSONString());
+            file.flush();
+            file.close();
+            System.out.println("BlockListSaved");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
