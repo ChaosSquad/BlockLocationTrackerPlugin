@@ -3,3 +3,6 @@ name: 'BlockLocationTracker'
 version: 1.0
 api-version: 1.20
 commands:
+  blt:
+    description: Toggles block highlighting and manages block list.
+    usage: "/blt <showblocks> <true|false>"

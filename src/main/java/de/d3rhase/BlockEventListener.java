@@ -29,12 +29,14 @@ public class BlockEventListener implements Listener {
     private File blockListFile;
     private final List<BlockDisplay> highlightedBlocks;
     private final static String fileName = "interactionAllowed.json";
+    private boolean highlightSelectedBlocks;
 
 
     public BlockEventListener(JavaPlugin plugin) {
         this.plugin = plugin;
         this.blockListFile = new File(plugin.getDataFolder(), fileName);
-        highlightedBlocks= new ArrayList<>();
+        this.highlightedBlocks= new ArrayList<>();
+        this.highlightSelectedBlocks = false;
         loadBlockList();
     }
 
@@ -58,7 +60,10 @@ public class BlockEventListener implements Listener {
                 if (!this.blockIsOnList(blockCoords)) {
 
                     blockList.add(blockCoords);
-                    spawnHighlightedBlock(targetBlock.getLocation());
+
+                    if (this.highlightSelectedBlocks) {
+                        spawnHighlightedBlock(targetBlock.getLocation());
+                    }
 
                     String message = (ChatColor.GREEN + "Block added to the list");
                     player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
@@ -72,6 +77,7 @@ public class BlockEventListener implements Listener {
                         boolean zMatches = objCoords.get("z").toString().equals(blockCoords.get("z").toString());
                         return xMatches && yMatches && zMatches;
                     });
+
                     removeHighlightedBlock(targetBlock.getLocation());
 
                     String message = (ChatColor.RED + "Block removed from the list");
@@ -162,5 +168,13 @@ public class BlockEventListener implements Listener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isHighlightSelectedBlocks() {
+        return highlightSelectedBlocks;
+    }
+
+    public void setHighlightSelectedBlocks(boolean highlightSelectedBlocks) {
+        this.highlightSelectedBlocks = highlightSelectedBlocks;
     }
 }
