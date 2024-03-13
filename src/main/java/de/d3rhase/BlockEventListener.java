@@ -28,7 +28,7 @@ public class BlockEventListener implements Listener {
     private JSONArray blockList;
     private File blockListFile;
     private final List<BlockDisplay> highlightedBlocks;
-    private final static String fileName = "interactionAllowed.json";
+    private final static String fileName = "selectedBlocks.json";
     private boolean highlightSelectedBlocks;
 
 
