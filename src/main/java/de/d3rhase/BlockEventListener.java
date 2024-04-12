@@ -30,6 +30,12 @@ public class BlockEventListener implements Listener {
     private final List<BlockDisplay> highlightedBlocks;
     private final static String fileName = "selectedBlocks.json";
     private boolean highlightSelectedBlocks;
+    public static final String BLOCK_DISPLAY_TAG = "BlockLocationTrackerBlockDisplay";
+    public static final String BLOCK_DATA_PLACEHOLDER_X = "x";
+    public static final String BLOCK_DATA_PLACEHOLDER_Y = "y";
+    public static final String BLOCK_DATA_PLACEHOLDER_Z = "z";
+    public static final String BLOCK_DATA_PLACEHOLDER_MATERIAL = "material";
+    public static final String SERVER_MAP_FOLDER_NAME = "world";
 
 
     public BlockEventListener(JavaPlugin plugin) {
@@ -53,9 +59,10 @@ public class BlockEventListener implements Listener {
             if (targetBlock != null && !targetBlock.getType().isAir()) {
 
                 JSONObject blockCoords = new JSONObject();
-                blockCoords.put("x", targetBlock.getX());
-                blockCoords.put("y", targetBlock.getY());
-                blockCoords.put("z", targetBlock.getZ());
+                blockCoords.put(BLOCK_DATA_PLACEHOLDER_X, targetBlock.getX());
+                blockCoords.put(BLOCK_DATA_PLACEHOLDER_Y, targetBlock.getY());
+                blockCoords.put(BLOCK_DATA_PLACEHOLDER_Z, targetBlock.getZ());
+                blockCoords.put(BLOCK_DATA_PLACEHOLDER_MATERIAL, targetBlock.getBlockData().getMaterial().toString());
 
                 if (!this.blockIsOnList(blockCoords)) {
 
@@ -72,9 +79,9 @@ public class BlockEventListener implements Listener {
                 } else {
                     blockList.removeIf(obj -> {
                         JSONObject objCoords = (JSONObject) obj;
-                        boolean xMatches = objCoords.get("x").toString().equals(blockCoords.get("x").toString());
-                        boolean yMatches = objCoords.get("y").toString().equals(blockCoords.get("y").toString());
-                        boolean zMatches = objCoords.get("z").toString().equals(blockCoords.get("z").toString());
+                        boolean xMatches = objCoords.get(BLOCK_DATA_PLACEHOLDER_X).toString().equals(blockCoords.get(BLOCK_DATA_PLACEHOLDER_X).toString());
+                        boolean yMatches = objCoords.get(BLOCK_DATA_PLACEHOLDER_Y).toString().equals(blockCoords.get(BLOCK_DATA_PLACEHOLDER_Y).toString());
+                        boolean zMatches = objCoords.get(BLOCK_DATA_PLACEHOLDER_Z).toString().equals(blockCoords.get(BLOCK_DATA_PLACEHOLDER_Z).toString());
                         return xMatches && yMatches && zMatches;
                     });
 
@@ -94,12 +101,12 @@ public class BlockEventListener implements Listener {
     private boolean blockIsOnList(JSONObject targetBlock){
         boolean xMatches, yMatches, zMatches;
 
-        for (Object o : blockList) {
-            JSONObject listBlock = (JSONObject) o;
-            xMatches = listBlock.get("x").toString().equals(targetBlock.get("x").toString());
-            yMatches = listBlock.get("y").toString().equals(targetBlock.get("y").toString());
-            zMatches = listBlock.get("z").toString().equals(targetBlock.get("z").toString());
-            if (xMatches && yMatches && zMatches){
+        for (Object blockListEntry : blockList) {
+            JSONObject blockData = (JSONObject) blockListEntry;
+            xMatches = blockData.get(BLOCK_DATA_PLACEHOLDER_X).toString().equals(targetBlock.get(BLOCK_DATA_PLACEHOLDER_X).toString());
+            yMatches = blockData.get(BLOCK_DATA_PLACEHOLDER_Y).toString().equals(targetBlock.get(BLOCK_DATA_PLACEHOLDER_Y).toString());
+            zMatches = blockData.get(BLOCK_DATA_PLACEHOLDER_Z).toString().equals(targetBlock.get(BLOCK_DATA_PLACEHOLDER_Z).toString());
+            if (xMatches && yMatches && zMatches) {
                 return true;
             }
         }
@@ -111,6 +118,7 @@ public class BlockEventListener implements Listener {
         BlockDisplay blockDisplay = Objects.requireNonNull(location.getWorld()).spawn(location.clone(), BlockDisplay.class);
         blockDisplay.setBlock(Material.GLASS.createBlockData());
         blockDisplay.setGlowing(true);
+        blockDisplay.addScoreboardTag(BLOCK_DISPLAY_TAG);
         highlightedBlocks.add(blockDisplay);
     }
 
@@ -128,12 +136,12 @@ public class BlockEventListener implements Listener {
 
     public void spawnHighlightedBlocks() {
         blockList.forEach(obj -> {
-            JSONObject blockCoords = (JSONObject) obj;
-            World world = plugin.getServer().getWorld("world");
+            JSONObject blockData = (JSONObject) obj;
+            World world = plugin.getServer().getWorld(SERVER_MAP_FOLDER_NAME);
             Location location = new Location(world,
-                    Double.parseDouble(blockCoords.get("x").toString()),
-                    Double.parseDouble(blockCoords.get("y").toString()),
-                    Double.parseDouble(blockCoords.get("z").toString()));
+                    Double.parseDouble(blockData.get(BLOCK_DATA_PLACEHOLDER_X).toString()),
+                    Double.parseDouble(blockData.get(BLOCK_DATA_PLACEHOLDER_Y).toString()),
+                    Double.parseDouble(blockData.get(BLOCK_DATA_PLACEHOLDER_Z).toString()));
 
             spawnHighlightedBlock(location);
         });
@@ -167,6 +175,30 @@ public class BlockEventListener implements Listener {
             System.out.println("BlockListSaved");
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * This method updates the list data fields for every blocks, so that older lists with only coordinates
+     * also get all information that are needed in this version
+     */
+    public void informationUpdateBlockList(){
+        for (int i = 0; i < blockList.size(); i++){
+            JSONObject blockListEntry = (JSONObject) blockList.get(i);
+
+            double x, y, z;
+
+            x = Double.parseDouble(blockListEntry.get(BLOCK_DATA_PLACEHOLDER_X).toString());
+            y = Double.parseDouble(blockListEntry.get(BLOCK_DATA_PLACEHOLDER_Y).toString());
+            z = Double.parseDouble(blockListEntry.get(BLOCK_DATA_PLACEHOLDER_Z).toString());
+
+            World world = plugin.getServer().getWorld(SERVER_MAP_FOLDER_NAME);
+            Location location = new Location(world, x, y, z);
+
+            boolean hasMaterialInfo = blockListEntry.containsKey(BLOCK_DATA_PLACEHOLDER_MATERIAL);
+            String material = location.getBlock().getBlockData().getMaterial().toString();
+            if (!hasMaterialInfo) blockListEntry.put(BLOCK_DATA_PLACEHOLDER_MATERIAL, material);
+
         }
     }
 

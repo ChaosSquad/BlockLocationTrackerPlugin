@@ -12,7 +12,10 @@ public class BlockLocationTrackerPlugin extends JavaPlugin {
         // Debug
         getLogger().info("Data folder: " + getDataFolder().getAbsolutePath());
         // Initialize and register the event listener
+
         eventListener = new BlockEventListener(this);
+
+        eventListener.informationUpdateBlockList();
 
         getServer().getPluginManager().registerEvents(eventListener, this);
 
