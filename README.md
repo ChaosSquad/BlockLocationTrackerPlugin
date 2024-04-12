@@ -6,4 +6,4 @@
 
 ## Installation:
 - Drag the jar into the plugins folder of your server. Tested for 1.20.2
-- To use the Plugin you need to create a BlockLocationTracker folder inside of the plugins folder. And in this folder a file named selectedBlocks.json.
+- To use the Plugin you need to create a BlockLocationTracker folder inside of the plugins folder. And in this folder a file named selectedBlocks.json
