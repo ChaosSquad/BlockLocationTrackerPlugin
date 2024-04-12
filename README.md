@@ -2,6 +2,7 @@
 # Block Location Tracker / Selecter:
 - Maintained by [@D3rHase](https://github.com/D3rHase)
 - Tested for 1.20.2
+- [Installation](https://github.com/D3rHase/BlockLocationTrackerPlugin#Installation)
 
 ## Showcase:
 - A picture says more than 1000 words.
