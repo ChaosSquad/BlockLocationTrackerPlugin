@@ -18,7 +18,8 @@
  
 
 ## Installation:
-- Drag the jar into the plugins folder of your server.
-- To use the Plugin you need to create the BlockLocationTracker folder inside of the plugins folder. In this folder you have to create a file named selectedBlocks.json
+- Drag the jar into the plugins folder of your server. (If there is no plugin folder -> [How to setup a minecraft plugin server](https://www.google.com/search?q=How+to+set+up+a+minecraft+plugin+server+version+1.20))
+- Create the BlockLocationTracker folder inside of the server plugins folder.
+- Create a file named selectedBlocks.json in the BlockLocationTracker folder.
 
 ![Installation example](https://github.com/D3rHase/BlockLocationTrackerPlugin/blob/main/readMe/requirements.png?raw=true)
