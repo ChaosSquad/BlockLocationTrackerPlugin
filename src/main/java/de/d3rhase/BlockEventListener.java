@@ -172,7 +172,7 @@ public class BlockEventListener implements Listener {
             file.write(blockList.toJSONString());
             file.flush();
             file.close();
-            System.out.println("BlockListSaved");
+            this.plugin.getLogger().fine("BlockListSaved");
         } catch (Exception e) {
             e.printStackTrace();
         }
